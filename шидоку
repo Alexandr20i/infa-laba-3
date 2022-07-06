@@ -1,0 +1,208 @@
+/*
+Вариант 27. Шидоку
+Шидоку – это квадратная матрица размером 4×4, заполненная
+только числами 1, 2, 3 и 4, так чтобы числа в каждом столбце, в
+каждой строке и в каждом угловом квадрате размером 2×2 не
+повторялись. Программа должна достраивать введённый
+пользователем частично заполненный шидоку либо сообщать о том,
+что это невозможно.
+Входные данные. Квадратная матрица размером 4×4, заполненная
+только числами 1, 2, 3 и 4. Некоторые элементы могут быть
+пропущены.
+Выходные данные. Результат построения шидоку, либо
+сообщение о том, что построение невозможно.
+*/
+
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+char Yes_No() // зацикливание программы 
+{
+	char yn;
+	while (!(cin >> yn) || cin.peek() != '\n' || yn != 'Y' && yn != 'N' && yn != 'y' && yn != 'n') {
+		cin.clear();
+		cin.ignore(4321, '\n');
+		cout << "Введите корректные значения: ";
+	}
+	return yn;
+}
+
+char kontrol(char o) // контроль ввода 
+{
+	while (o != '1' && o != '2' && o != '3' && o != '4' && o != '?' && o != ' ')
+	{
+		cin.clear();
+		cin.ignore(4321, '\n');
+		cout << "Введите корректное значение ";
+		cin >> o;
+	}
+	return o;
+}
+
+void printSudoku4x4(int arr[4][4])  // вывод массива
+{
+	cout << "-------------------------" << endl;
+	for (int y = 0; y < 4; y++) {
+		for (int x = 0; x < 4; x++)
+			cout << arr[y][x] << " ";
+		cout << endl;
+	}
+	cout << "-------------------------" << endl;
+
+}
+
+bool canPlace4x4(int arr[4][4], int row, int col, int n) // можно ли ввести число от 1 до 4 в ячейку ?
+{
+	if (arr[row][col] != 0) // если там пустое множество, то продолжаем
+		return false;
+	bool status = true; 
+	int gridx = (col / 2) * 2; // разделяю на соты (4соты по 4 элемента )
+	int gridy = (row / 2) * 2;
+	for (int i = 0; i < 4; i++) {
+		if (arr[row][i] == n) { status = false; break; }
+		if (arr[i][col] == n) { status = false; break; }
+		if (arr[gridy + i / 2][gridx + i % 2] == n) { status = false; break; }
+	}
+	return status;
+}
+
+void nextEmpty(int arr[4][4], int row, int col, int& rowNext, int& colNext)// следующий элемент
+{
+
+	int indexNext = 4 * 4 + 1;
+	for (int i = row * 4 + col + 1; i < 4 * 4; i++)
+	{
+		if (arr[i / 4][i % 4] == 0) 
+		{
+			indexNext = i;
+			break;
+		}
+	}
+	rowNext = indexNext / 4;
+	colNext = indexNext % 4;
+}
+
+void copyArray(int arr[4][4], int arrCpy[4][4]) 
+{
+	for (int y = 0; y < 4; y++)
+		for (int x = 0; x < 4; x++)
+			arrCpy[y][x] = arr[y][x];
+}
+
+vector<int> findPlaceables(int arr[4][4], int row, int col) // числа которые можно поместить в ячейку 
+{
+	vector<int> placebles = {};
+	for (int n = 1; n <= 4; n++)
+		if (canPlace4x4(arr, row, col, n)) placebles.push_back(n);
+	return placebles;
+}
+
+bool solveSudoku4x4(int arr[4][4], int row, int col) // ряд/строка
+{
+	//system("cls"); // для того чтобы посмотреть как работает программа 
+	//printSudoku4x4(arr);
+
+	if (row > 3)  
+		return true;
+	if (arr[row][col] != 0) 
+	{
+		int rowNext, colNext;
+		nextEmpty(arr, row, col, rowNext, colNext);
+		return solveSudoku4x4(arr, rowNext, colNext);
+	}
+
+	vector<int> placebles = findPlaceables(arr, row, col); // даст все подходящие числа 
+
+	if (placebles.size() == 0)
+		return false;
+
+	bool status = false;
+	for (int i = 0; i < placebles.size(); i++) 
+	{
+		int n = placebles[i];
+		int arrCpy[4][4];
+		copyArray(arr, arrCpy); //копируем массив 
+		arrCpy[row][col] = n;
+		int rowNext = row;
+		int colNext = col;
+		nextEmpty(arrCpy, row, col, rowNext, colNext);
+		if (solveSudoku4x4(arrCpy, rowNext, colNext))
+		{
+			copyArray(arrCpy, arr);
+			status = true;
+			break;
+		}
+	}
+	return status;
+}
+
+int prov(int bef[4][4], int aft[4][4]) // проверяем, изменился ли массив 
+{
+	bool fool = true;
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++) {
+			if (bef[i][j] != aft[i][j]) {
+				fool = false;
+				break;
+			}
+		}
+	}
+	return fool;
+}
+
+int main() //Более подробно в a хранится адрес ячейки, в которой находится адрес целого числа
+{
+	setlocale(LC_ALL, "RUS");
+	char board[4][4];
+	int a[4][4];
+	int before[4][4];
+	bool ravenstvo;
+	
+	do 
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			cout << "Введите элементы в " << i + 1 << " ряду (без пробелов):"; // программа считает только первые 4 символа 
+			cin >> board[i][0] >> board[i][1] >> board[i][2] >> board[i][3];
+			board[i][0] = kontrol(board[i][0]);
+			board[i][1] = kontrol(board[i][1]);
+			board[i][2] = kontrol(board[i][2]);
+			board[i][3] = kontrol(board[i][3]);
+		}
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				//----------------------- 
+				if (board[i][j] == '?')   // перевод из строки в числа (char -> int )
+					board[i][j] = '0';
+				//------------------------
+				a[i][j] = board[i][j] - '0';
+				before[i][j] = a[i][j];
+			
+			}
+			cout << endl;
+		}
+
+		solveSudoku4x4(a, 0, 0);
+
+		ravenstvo = prov(before,a);
+
+		if (ravenstvo == true)
+			cout << "No solution"<< endl;
+		else 
+		{
+			cout << "successfully solved board!" << endl;
+			printSudoku4x4(a);
+		}
+
+		//if (solveSudoku4x4(a, 0, 0)) cout << "successfully solved board!" << endl;
+		//printSudoku4x4(a);
+		
+
+		cout << "Хотите начать заново? <Y/N> ";
+	} while (Yes_No() == 'Y' || Yes_No() == 'y');
+	return 0;
+}
